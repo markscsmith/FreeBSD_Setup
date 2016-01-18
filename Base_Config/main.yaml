@@ -1,0 +1,54 @@
+- hosts: newboxen
+  remote_user: mscs
+  tasks:
+    - command: /usr/sbin/portsnap update
+      become: yes
+      become_method: su
+      register: portsnap_status
+      ignore_errors: true
+
+    - command: /usr/sbin/portsnap fetch extract
+      become: yes
+      become_method: su
+      when: portsnap_status|failed
+
+    - stat: path=/usr/local/sbin/portmaster
+      register: portsnap_installed
+
+    - command: chdir=/usr/ports/ports-mgmt/portmaster make
+      become: yes
+      become_method: su
+      environment:
+        BATCH: 'yes'
+      when: portsnap_installed.stat.exists == False
+
+    - command: chdir=/usr/ports/ports-mgmt/portmaster make install
+      become: yes
+      become_method: su
+      environment:
+        BATCH: 'yes'
+      when: portsnap_installed.stat.exists == False
+
+    - command: /usr/local/sbin/portmaster --no-confirm -G -m 'BATCH=yes' -Da
+      become: yes
+      become_method: su
+
+    - command: /usr/local/sbin/portmaster --no-confirm -G -m 'BATCH=yes' shells/bash
+      become: yes
+      become_method: su
+
+    - command: /usr/local/sbin/portmaster --no-confirm -G -m 'BATCH=yes' security/sudo
+      become: yes
+      become_method: su
+
+    - command: /usr/bin/chsh -s /usr/local/bin/bash
+      become: yes
+      become_method: su
+
+    - command: /usr/bin/chsh -s /usr/local/bin/bash mscs
+      become: yes
+      become_method: su
+
+    #- command: /usr/local/sbin/portmaster --no-confirm -G -m 'BATCH=yes' devel/spark
+    #  become: yes
+    #  become_method: su
