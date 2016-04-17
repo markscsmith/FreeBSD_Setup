@@ -1,0 +1,12 @@
+- hosts: newboxen
+  remote_user: mscs
+  tasks:
+    - name: Change default shell to bash for mscs.
+      command: /usr/bin/chsh -s /usr/local/bin/bash mscs
+      become: yes
+      become_method: su
+
+    - name: Change default shell to bash for root.
+      command: /usr/bin/chsh -s /usr/local/bin/bash
+      become: yes
+      become_method: su

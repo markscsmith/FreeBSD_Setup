@@ -1,0 +1,8 @@
+- hosts: newboxen
+  remote_user: mscs
+  gather_facts: false
+  tasks:
+    - name: Install python.
+      raw: "cd /usr/ports/lang/python/; make install clean BATCH=\"yes\"; cd -"
+      become: yes
+      become_method: su

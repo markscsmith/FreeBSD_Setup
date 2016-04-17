@@ -1,54 +1,75 @@
 - hosts: newboxen
   remote_user: mscs
   tasks:
-    - command: /usr/sbin/portsnap update
+    - name: Check to see if portmaster is installed.
+      stat: path=/usr/local/sbin/portmaster
+      register: portmaster_installed
+
+    - name: Build portmaster.
+      command: chdir=/usr/ports/ports-mgmt/portmaster make
+      become: yes
+      become_method: su
+      environment:
+        BATCH: 'yes'
+      when: portmaster_installed.stat.exists == False
+
+    - name: Install portmaster.
+      command: chdir=/usr/ports/ports-mgmt/portmaster make install
+      become: yes
+      become_method: su
+      environment:
+        BATCH: 'yes'
+      when: portmaster_installed.stat.exists == False
+
+    - name: Try to update ports tree.
+      command: /usr/sbin/portsnap update
       become: yes
       become_method: su
       register: portsnap_status
       ignore_errors: true
 
-    - command: /usr/sbin/portsnap fetch extract
+    - name: Do a fetch/extract if the ports tree update fails.
+      command: /usr/sbin/portsnap fetch extract
       become: yes
       become_method: su
       when: portsnap_status|failed
 
-    - stat: path=/usr/local/sbin/portmaster
-      register: portsnap_installed
-
-    - command: chdir=/usr/ports/ports-mgmt/portmaster make
-      become: yes
-      become_method: su
-      environment:
-        BATCH: 'yes'
-      when: portsnap_installed.stat.exists == False
-
-    - command: chdir=/usr/ports/ports-mgmt/portmaster make install
-      become: yes
-      become_method: su
-      environment:
-        BATCH: 'yes'
-      when: portsnap_installed.stat.exists == False
-
-    - command: /usr/local/sbin/portmaster --no-confirm -G -m 'BATCH=yes' -Da
+    - name: Upgrade the pkg command before other upgrade steps.
+      command: /usr/local/sbin/portmaster -d --no-confirm -G -m 'BATCH=yes' ports-mgmt/pkg
       become: yes
       become_method: su
 
-    - command: /usr/local/sbin/portmaster --no-confirm -G -m 'BATCH=yes' shells/bash
+    - name: Upgrade all of the currently installed ports.
+      command: /usr/local/sbin/portmaster --no-confirm -G -m 'BATCH=yes' -da
       become: yes
       become_method: su
 
-    - command: /usr/local/sbin/portmaster --no-confirm -G -m 'BATCH=yes' security/sudo
+    - name: Install bash.
+      command: /usr/local/sbin/portmaster -d --no-confirm -G -m 'BATCH=yes' shells/bash
       become: yes
       become_method: su
 
-    - command: /usr/bin/chsh -s /usr/local/bin/bash
+    - name: Install sudo.
+      command: /usr/local/sbin/portmaster -d --no-confirm -G -m 'BATCH=yes' security/sudo
       become: yes
       become_method: su
 
-    - command: /usr/bin/chsh -s /usr/local/bin/bash mscs
+    - name: Install screen.
+      command: /usr/local/sbin/portmaster -d --no-confirm -G -m 'BATCH=yes' sysutils/screen
       become: yes
       become_method: su
 
-    #- command: /usr/local/sbin/portmaster --no-confirm -G -m 'BATCH=yes' devel/spark
-    #  become: yes
-    #  become_method: su
+    - name: Install rsync.
+      command: /usr/local/sbin/portmaster -d --no-confirm -G -m 'BATCH=yes' net/rsync
+      become: yes
+      become_method: su
+
+
+    - name: Install vim.
+      command: /usr/local/sbin/portmaster -d --no-confirm -G -m 'BATCH=yes' editors/vim
+      become: yes
+      become_method: su
+
+    - command: /usr/local/sbin/portmaster -d --no-confirm -G -m 'BATCH=yes' devel/spark
+      become: yes
+      become_method: su
